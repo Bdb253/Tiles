@@ -343,14 +343,16 @@ window.addEventListener("keydown", function (e) {
     player.direction = MOVE_LEFT;
   else if (e.keyCode == 68)
 	player.direction = MOVE_RIGHT;
-   else if(e.keyCode == 32)
-   {
-	   for(var i = 0; i < 5; i++)
-	   {
-			charms[i]= true;
-	   }
-   }
-
+  /*	
+  else if(e.keyCode == 32)
+  {
+    for(var i = 0; i < 5; i++)
+    {
+		charms[i]= true;
+    }
+  }
+  */
+ 
   //console.log(e.keyCode);
   move();
 });
