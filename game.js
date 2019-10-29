@@ -3,15 +3,25 @@ var gameport = document.getElementById("gameport");
 
 var renderer = PIXI.autoDetectRenderer({width: 440, height: 440, backgroundColor: 0x3344ee});
 gameport.appendChild(renderer.view);
-
 var stage = new PIXI.Container();
 stage.sortableChildren = true;
 
+// Scene objects get loaded in the ready function
+var player;
+var world;
 
-PIXI.Loader.shared.add("spriteSheet.json").load(setup);
+// Character movement constants:
+var MOVE_LEFT = 1;
+var MOVE_RIGHT = 2;
+var MOVE_UP = 3;
+var MOVE_DOWN = 4;
+var MOVE_NONE = 0;
 
 PIXI.sound.add('wrongWay', 'wrongWay.wav');
 PIXI.sound.add('select', 'select.wav');
+
+PIXI.Loader.shared.add("tileset.png");
+PIXI.Loader.shared.add("tilemap.json").load(setup);;
 
 var cell_width = 40;
 var cols = Math.floor(renderer.width/cell_width);
@@ -29,11 +39,67 @@ var finish;
 var playerPos = start;
 
 
+// The move function starts or continues movement
+function move() 
+{
+	if (player.direction == MOVE_NONE) {
+	  player.moving = false;
+	  console.log(player.y);
+	  return;
+	}
+	player.moving = true;
+	console.log("move");
+	
+	if (player.direction == MOVE_LEFT) 
+	{
+	  createjs.Tween.get(player).to({x: player.x - 32}, 500).call(move);
+	}
+	if (player.direction == MOVE_RIGHT)
+	{
+	  createjs.Tween.get(player).to({x: player.x + 32}, 500).call(move);
+	}
+  
+	if (player.direction == MOVE_UP)
+	  createjs.Tween.get(player).to({y: player.y - 32}, 500).call(move);
+	
+	if (player.direction == MOVE_DOWN)
+	  createjs.Tween.get(player).to({y: player.y + 32}, 500).call(move);
+}
+
+// Keydown events start movement
+window.addEventListener("keydown", function (e) {
+	e.preventDefault();
+	if (!player) return;
+	if (player.moving) return;
+	if (e.repeat == true) return;
+	
+	player.direction = MOVE_NONE;
+  
+	if (e.keyCode == 87)
+	  player.direction = MOVE_UP;
+	else if (e.keyCode == 83)
+	  player.direction = MOVE_DOWN;
+	else if (e.keyCode == 65)
+	  player.direction = MOVE_LEFT;
+	else if (e.keyCode == 68)
+	  player.direction = MOVE_RIGHT;
+  
+	console.log(e.keyCode);
+	move();
+  });
+
+
+
 function setup()
 {
-	
-	let sheet = PIXI.Loader.shared.resources["spriteSheet.json"].spritesheet;
+	var tu = new TileUtilities(PIXI);
+	var tu = new TileUtilities(PIXI);
+	console.log(PIXI.Loader.shared.resources["tilemap.json"]);
+	world = tu.makeTiledWorld(PIXI.Loader.shared.resources["tilemap.json"], PIXI.Loader.shared.resources["tileset.png"]);
+	  
+	stage.addChild(world);
 
+	/*
 	var Menu = new PIXI.Sprite(sheet.textures["wall1.png"]);
 	Menu.zIndex = 100;
 	Menu.scale.x = 11;
@@ -130,195 +196,13 @@ function setup()
 	stage.addChild(startText);
 	stage.addChild(titleText);
 	stage.addChild(creditText);
+	*/
+	
 	
 
-	generate();
 	
-	//Cell constructor
-	function Cell(c , r, type)
-	{
-		this.col = c;
-		this.row = r;
-		this.type = type;
-
-		if(type == "wall")
-		{
-			this.sprite = new PIXI.Sprite(sheet.textures["wall1.png"]);
-			this.walkable = false;
-		}
-		else if (type == "dirt")
-		{
-			this.sprite = new PIXI.Sprite(sheet.textures["dirt1.png"]);
-			this.walkable = true;
-		}
-		else if(type == "trap")
-		{
-			this.sprite = new PIXI.AnimatedSprite(sheet.animations["trap"]);
-			this.sprite.animationSpeed = 0.015;
-			this.walkable = true;
-		}
-		else if(type == "ladder")
-		{
-			this.sprite = new PIXI.Sprite(sheet.textures["ladder.png"]);
-			this.walkable = true;
-		}
-
-		this.show = function()
-		{
-			var x = this.col*cell_width;
-			var y = this.row*cell_width;
-
-			this.sprite.x = x;
-			this.sprite.y = y;
-			this.sprite.zIndex = 5;
-			stage.addChild(this.sprite);
-		}
-	}
-
-	function generate()
-	{
-		const NORTH = "N";
-		const SOUTH = "S";
-		const EAST = "E";
-		const WEST = "W";
-
-		for(var x = 0; x < height; x++)
-		{
-			maze[x] = [];
-			for(var y = 0; y  < width; y++)
-			{
-				maze[x][y] = false;
-			}
-		}
-		maze[start.x][start.y]=true;
-
-
-		var back;
-		var move;
-		var possibleDir;
-		var pos = start;
-		var max = 0;
-
-		var moves = [];
-		moves.push(pos.y+(pos.x*width));
-		while(moves.length)
-		{
-			possibleDir = "";
-					
-			if ((pos.x + 2 < height ) && (maze[pos.x + 2][pos.y] == false) && (pos.x + 2 != true) && (pos.x + 2 != height - 1) )
-			{
-				possibleDir += SOUTH;
-			}
-			
-			if ((pos.x - 2 >= 0 ) && (maze[pos.x - 2][pos.y] == false) && (pos.x - 2 != true) && (pos.x - 2 != height - 1) )
-			{
-				possibleDir += NORTH;
-			}
-			
-			if ((pos.y - 2 >= 0 ) && (maze[pos.x][pos.y - 2] == false) && (pos.y - 2 != true) && (pos.y - 2 != width - 1) )
-			{
-				possibleDir += WEST;
-			}
-			
-			if ((pos.y + 2 < width ) && (maze[pos.x][pos.y + 2] == false) && (pos.y + 2 != true) && (pos.y + 2 != width - 1) )
-			{
-				possibleDir += EAST;
-			}
-			
-			if ( possibleDir.length > 0 )
-			{
-				move = randInt(0, (possibleDir.length));
-				switch ( possibleDir.charAt(move) )
-				{
-					case NORTH: 
-						maze[pos.x - 2][pos.y] = true;
-						maze[pos.x - 1][pos.y] = true;
-						pos.x -=2;
-						break;
-					
-					case SOUTH: 
-						maze[pos.x + 2][pos.y] = true;
-						maze[pos.x + 1][pos.y] = true;
-						pos.x +=2;
-						break;
-					
-					case WEST: 
-						maze[pos.x][pos.y - 2] = true;
-						maze[pos.x][pos.y - 1] = true;
-						pos.y -=2;
-						break;
-					
-					case EAST: 
-						maze[pos.x][pos.y + 2] = true;
-						maze[pos.x][pos.y + 1] = true;
-						pos.y +=2;
-						break;        
-				}
-				
-				moves.push(pos.y + (pos.x * width));
-			}
-			else
-			{
-				back = moves.pop();
-				pos.x = Math.floor(back / width);
-				pos.y = back % width;
-			}
-			if(moves.length > max)
-			{
-				finish = new Point(pos.x, pos.y);
-				max = moves.length;
-			}
-		}
-
-		for ( var x = 0; x < height; x++ )
-		{
-			grid[x]=[]
-			for ( var y = 0; y < width; y++ )
-			{
-				if(maze[x][y] == true)
-				{
-					var chance = randInt(0, 4)
-					if(x == start.x && y == start.y)
-					{
-						var cell = new Cell(x, y, "dirt");
-						cell.show()
-						grid[x].push(cell);
-						cells.push(cell);
-					}
-					else if(finish.x== x && finish.y == y)
-					{
-						var cell = new Cell(x, y, "ladder");
-						cell.show()
-						grid[x].push(cell);
-						cells.push(cell);
-					}
-					else if(chance == 0)
-					{
-						var cell = new Cell(x, y, "trap");
-						cell.show()
-						grid[x].push(cell);
-						cells.push(cell);
-					}
-					else
-					{
-						var cell = new Cell(x, y, "dirt");
-						cell.show()
-						grid[x].push(cell);
-						cells.push(cell);
-					}
-				}
-				else
-				{
-					var cell= new Cell(x, y, "wall");
-					cell.show();
-					grid[x].push(cell);
-					cells.push(cell);
-				}
-			}
-		}		
-	}
-
-	var player = new PIXI.Sprite(sheet.textures["char.png"]);
+	playerTex = new PIXI.Texture.from("char.png");
+	player = new PIXI.Sprite(playerTex);
 
 	player.position.x = start.x * cell_width+20;
 	player.position.y = start.y * cell_width+20;
@@ -327,83 +211,7 @@ function setup()
 	player.zIndex = 15;
 	stage.addChild(player);
 
-	function keydownEventHandler(e)
-	{	
-		//w key
-		if(e.keyCode == 87)
-		{
-			if(player.angle != 0)
-			{
-				player.angle = 0;
-			}
-			if(grid[playerPos.x][playerPos.y-1].walkable)
-			{
-				var newy = player.position.y - 40;
-				createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
-				playerPos.y-=1;
-			}
-			else
-			{
-				PIXI.sound.play('wrongWay');
-			}
-		}
-		//s key
-		if(e.keyCode == 83)
-		{
-			if(player.angle != 180)
-			{
-				player.angle = 180;
-			}
-			if(grid[playerPos.x][playerPos.y+1].walkable)
-			{
-				var newy = player.position.y + 40;
-				createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
-				playerPos.y+=1;
-			}
-			else
-			{
-				PIXI.sound.play('wrongWay');
-			}
-		}
-		//a key
-		if(e.keyCode == 65)
-		{
-			if(player.angle != -90)
-			{
-				player.angle = -90;
-			}
-			if(grid[playerPos.x-1][playerPos.y].walkable)
-			{
-				var newX = player.position.x - 40;
-				createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
-				playerPos.x -=1;
-			}
-			else
-			{
-				PIXI.sound.play('wrongWay');
-			}
-		}
-		//d key
-		if(e.keyCode == 68)
-		{
-			if(player.angle != 90)
-			{
-				player.angle = 90;
-			}
-			if(grid[playerPos.x+1][playerPos.y].walkable)
-			{
-				var newX = player.position.x + 40;
-				createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
-				playerPos.x+=1;
-			}
-			else
-			{
-				PIXI.sound.play('wrongWay');
-			}
-		}
-
-
-	}
+	/*
 
 	//gameOver text
 	const gameOverStyle = new PIXI.TextStyle({
@@ -440,41 +248,13 @@ function setup()
 		PIXI.sound.play('select');
 		location.reload();
 	};
+	*/
 
 	function animate()
 	{
 		requestAnimationFrame(animate);
 		renderer.render(stage);
 
-		for ( var x = 0; x < height; x++ )
-		{
-			for ( var y = 0; y < width; y++ )
-			{
-				//console.log("x: "+ x + ", y: " + y + "type: " + grid[x][y].type);
-				if(grid[x][y].type == "trap")
-				{
-					grid[x][y].sprite.play();
-					if(playerPos.x ==x && playerPos.y == y && grid[x][y].sprite.currentFrame != 0 && lives > 0 && grid[x][y].sprite.currentFrame !=4)
-					{
-						lives--;
-						PIXI.sound.play('wrongWay');
-						if(lives == 0)
-						{
-							stage.addChild(gameOverText);
-							stage.addChild(restartText);
-							stage.addChild(Menu);
-						}
-					}
-				}
-				else if(grid[x][y].type == "ladder" && playerPos.x ==x && playerPos.y == y)
-				{
-					generate();
-					player.position.x = start.x * cell_width;
-					player.position.y = start.y * cell_width;
-					playerPos = start;
-				}
-			}
-		}
 	}
 
 	animate();
