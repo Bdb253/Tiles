@@ -24,13 +24,13 @@ PIXI.Loader.shared.add("tileset.png");
 PIXI.Loader.shared.add("tilemap.json").load(setup);;
 
 var cell_width = 40;
-var cols = Math.floor(renderer.width/cell_width);
-var rows = Math.floor(renderer.height/cell_width);
+var cols = 100
+var rows = 100
 var width = cols+1;
 var height = rows+1;	
 
 var grid = [];
-var maze = [];
+var map = [];
 var cells = [];
 var lives = 3;
 
@@ -52,18 +52,18 @@ function move()
 	
 	if (player.direction == MOVE_LEFT) 
 	{
-	  createjs.Tween.get(player).to({x: player.x - 32}, 500).call(move);
+	  createjs.Tween.get(player).to({x: player.x - 40}, 500).call(move);
 	}
 	if (player.direction == MOVE_RIGHT)
 	{
-	  createjs.Tween.get(player).to({x: player.x + 32}, 500).call(move);
+	  createjs.Tween.get(player).to({x: player.x + 40}, 500).call(move);
 	}
   
 	if (player.direction == MOVE_UP)
-	  createjs.Tween.get(player).to({y: player.y - 32}, 500).call(move);
+	  createjs.Tween.get(player).to({y: player.y - 40}, 500).call(move);
 	
 	if (player.direction == MOVE_DOWN)
-	  createjs.Tween.get(player).to({y: player.y + 32}, 500).call(move);
+	  createjs.Tween.get(player).to({y: player.y + 40}, 500).call(move);
 }
 
 // Keydown events start movement
@@ -92,14 +92,85 @@ window.addEventListener("keydown", function (e) {
 
 function setup()
 {
-	var tu = new TileUtilities(PIXI);
-	var tu = new TileUtilities(PIXI);
-	console.log(PIXI.Loader.shared.resources["tilemap.json"]);
-	world = tu.makeTiledWorld(PIXI.Loader.shared.resources["tilemap.json"], PIXI.Loader.shared.resources["tileset.png"]);
-	  
-	stage.addChild(world);
+
+	$.getJSON("tilemap.json", function(jsonFile) {
+		console.log(jsonFile); // this will show the info it in firebug console
+		for( var x=0; x < rows; x++)
+		{
+			map[x] = [];
+			for(var y = 0; y< cols; y++)
+			{
+				map[x][y] = jsonFile.layers[0].data[(x*y)+y];
+				console.log(jsonFile.layers[0].data[(x*y)+y]); 
+			}
+		}
+	});
+	
+
+	
+
+	
+	playerTex = new PIXI.Texture.from("char.png");
+	player = new PIXI.Sprite(playerTex);
+
+	player.position.x = start.x * cell_width+20;
+	player.position.y = start.y * cell_width+20;
+	player.anchor.x = .5;
+	player.anchor.y = .5;
+	player.zIndex = 15;
+	stage.addChild(player);
 
 	/*
+
+	//gameOver text
+	const gameOverStyle = new PIXI.TextStyle({
+		fontFamily: 'Arial',
+		fontSize: 60,
+		fontWeight: 'bold',
+		fill: '#FF0000',
+		strokeThickness: 5,
+	});
+
+	gameOverText = new PIXI.Text("GAME OVER");
+	gameOverText.x = 20;
+	gameOverText.y = 175;
+	gameOverText.zIndex = 150;
+	gameOverText.style = gameOverStyle;
+
+	//restart text
+	const restartStyle = new PIXI.TextStyle({
+		fontFamily: 'Arial',
+		fontSize: 45,
+		fontWeight: 'bold',
+		fill: '#FF0000',
+		strokeThickness: 5,
+	});
+
+	restartText = new PIXI.Text("Restart?");
+	restartText.x = 125;
+	restartText.y = 250;
+	restartText.zIndex = 150;
+	restartText.style = restartStyle;
+	restartText.interactive = true;
+	restartText.click = function(e)
+	{
+		PIXI.sound.play('select');
+		location.reload();
+	};
+	*/
+
+	function animate()
+	{
+		requestAnimationFrame(animate);
+		renderer.render(stage);
+
+	}
+
+	animate();
+	document.addEventListener('keydown', keydownEventHandler);
+}
+
+/*
 	var Menu = new PIXI.Sprite(sheet.textures["wall1.png"]);
 	Menu.zIndex = 100;
 	Menu.scale.x = 11;
@@ -199,67 +270,6 @@ function setup()
 	*/
 	
 	
-
-	
-	playerTex = new PIXI.Texture.from("char.png");
-	player = new PIXI.Sprite(playerTex);
-
-	player.position.x = start.x * cell_width+20;
-	player.position.y = start.y * cell_width+20;
-	player.anchor.x = .5;
-	player.anchor.y = .5;
-	player.zIndex = 15;
-	stage.addChild(player);
-
-	/*
-
-	//gameOver text
-	const gameOverStyle = new PIXI.TextStyle({
-		fontFamily: 'Arial',
-		fontSize: 60,
-		fontWeight: 'bold',
-		fill: '#FF0000',
-		strokeThickness: 5,
-	});
-
-	gameOverText = new PIXI.Text("GAME OVER");
-	gameOverText.x = 20;
-	gameOverText.y = 175;
-	gameOverText.zIndex = 150;
-	gameOverText.style = gameOverStyle;
-
-	//restart text
-	const restartStyle = new PIXI.TextStyle({
-		fontFamily: 'Arial',
-		fontSize: 45,
-		fontWeight: 'bold',
-		fill: '#FF0000',
-		strokeThickness: 5,
-	});
-
-	restartText = new PIXI.Text("Restart?");
-	restartText.x = 125;
-	restartText.y = 250;
-	restartText.zIndex = 150;
-	restartText.style = restartStyle;
-	restartText.interactive = true;
-	restartText.click = function(e)
-	{
-		PIXI.sound.play('select');
-		location.reload();
-	};
-	*/
-
-	function animate()
-	{
-		requestAnimationFrame(animate);
-		renderer.render(stage);
-
-	}
-
-	animate();
-	document.addEventListener('keydown', keydownEventHandler);
-}
 
 //Point data structure
 function Point(x, y)
