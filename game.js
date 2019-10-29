@@ -180,6 +180,7 @@ function setup()
 	player.moving = true;
 	stage.addChild(player);
 
+	playMusic();
 	animate();
 }	
 
