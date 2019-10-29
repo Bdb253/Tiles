@@ -1,9 +1,15 @@
 //start chrome --allow-file-access-from-files
 var gameport = document.getElementById("gameport");
 
-var renderer = PIXI.autoDetectRenderer({width: 440, height: 440, backgroundColor: 0x3344ee});
+var GAME_SCALE = 1;
+var GAME_WIDTH = 400;
+var GAME_HEIGHT = 400;
+
+var renderer = PIXI.autoDetectRenderer({width: GAME_WIDTH, height: GAME_HEIGHT, backgroundColor: 0x3344ee});
 gameport.appendChild(renderer.view);
 var stage = new PIXI.Container();
+stage.scale.x = GAME_SCALE;
+stage.scale.y = GAME_SCALE;
 stage.sortableChildren = true;
 
 // Scene objects get loaded in the ready function
@@ -11,81 +17,97 @@ var player;
 var world;
 var sheet;
 
-// Character movement constants:
-var MOVE_LEFT = 1;
-var MOVE_RIGHT = 2;
-var MOVE_UP = 3;
-var MOVE_DOWN = 4;
-var MOVE_NONE = 0;
-
-var GAME_SCALE = 4;
-var GAME_WIDTH = 400;
-var GAME_HEIGHT = 400;
-
 var cell_width = 40;
 var cols = 100
 var rows = 100
 
-var grid = [];
-var map = [];
-var cells = [];
-var lives = 3;
 
-var start = new Point(8,8);
-var finish;
+var map = [];
+
+
+var start = new Point(6,6);
 var playerPos = start;
 
 PIXI.Loader.shared.add("spriteSheet.json").load(setup);
 
 // The move function starts or continues movement
-function move() 
-{
-	if (player.direction == MOVE_NONE) {
-	  player.moving = false;
-	  console.log(player.y);
-	  return;
-	}
-	player.moving = true;
-	console.log("move");
-	
-	if (player.direction == MOVE_LEFT) 
+function keydownEventHandler(e)
+{	
+	//w key
+	if(e.keyCode == 87)
 	{
-	  createjs.Tween.get(player).to({x: player.x - 40}, 500).call(move);
+		if(player.angle != 0)
+		{
+			player.angle = 0;
+		}
+		if(map[playerPos.x][playerPos.y-1].walkable)
+		{
+			var newy = player.position.y - 40;
+			createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
+			playerPos.y-=1;
+		}
+		else
+		{
+			PIXI.sound.play('wrongWay');
+		}
 	}
-	if (player.direction == MOVE_RIGHT)
+	//s key
+	if(e.keyCode == 83)
 	{
-	  createjs.Tween.get(player).to({x: player.x + 40}, 500).call(move);
+		if(player.angle != 180)
+		{
+			player.angle = 180;
+		}
+		if(map[playerPos.x][playerPos.y+1].walkable)
+		{
+			var newy = player.position.y + 40;
+			createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
+			playerPos.y+=1;
+		}
+		else
+		{
+			PIXI.sound.play('wrongWay');
+		}
 	}
-  
-	if (player.direction == MOVE_UP)
-	  createjs.Tween.get(player).to({y: player.y - 40}, 500).call(move);
-	
-	if (player.direction == MOVE_DOWN)
-	  createjs.Tween.get(player).to({y: player.y + 40}, 500).call(move);
+	//a key
+	if(e.keyCode == 65)
+	{
+		if(player.angle != -90)
+		{
+			player.angle = -90;
+		}
+		if(map[playerPos.x-1][playerPos.y].walkable)
+		{
+			var newX = player.position.x - 40;
+			createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
+			playerPos.x -=1;
+		}
+		else
+		{
+			PIXI.sound.play('wrongWay');
+		}
+	}
+	//d key
+	if(e.keyCode == 68)
+	{
+		if(player.angle != 90)
+		{
+			player.angle = 90;
+		}
+		if(map[playerPos.x+1][playerPos.y].walkable)
+		{
+			var newX = player.position.x + 40;
+			createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
+			playerPos.x+=1;
+		}
+		else
+		{
+			PIXI.sound.play('wrongWay');
+		}
+	}
+
+
 }
-
-// Keydown events start movement
-window.addEventListener("keydown", function (e) {
-	e.preventDefault();
-	if (!player) return;
-	if (player.moving) return;
-	if (e.repeat == true) return;
-	
-	player.direction = MOVE_NONE;
-  
-	if (e.keyCode == 87)
-	  player.direction = MOVE_UP;
-	else if (e.keyCode == 83)
-	  player.direction = MOVE_DOWN;
-	else if (e.keyCode == 65)
-	  player.direction = MOVE_LEFT;
-	else if (e.keyCode == 68)
-	  player.direction = MOVE_RIGHT;
-  
-	console.log(e.keyCode);
-	move();
-  });
-
 
 function setup()
 {
@@ -96,10 +118,10 @@ function setup()
 		for( var x=0; x < rows; x++)
 		{
 			map[x] = [];
-			for(var y = 0; y< cols; y++)
+			for(var y = 0; y < cols; y++)
 			{
-				console.log(jsonFile.layers[0].data[(x*y)+y]);
-				var cell = new Cell(x, y, jsonFile.layers[0].data[(x*y)+y]);
+				//console.log((x*rows)+y);
+				var cell = new Cell(x, y, jsonFile.layers[0].data[(x*rows)+y]);
 				cell.show();
 				map[x][y]=cell;
 			}
@@ -111,8 +133,8 @@ function setup()
 
 	player.position.x = start.x * cell_width;
 	player.position.y = start.y * cell_width;
-	player.anchor.x = .5;
-	player.anchor.y = .5;
+	//player.anchor.x = .5;
+	//player.anchor.y = .5;
 	player.zIndex = 15;
 	stage.addChild(player);
 
@@ -157,15 +179,6 @@ restartText.click = function(e)
 	location.reload();
 };
 */
-
-function animate()
-{
-	requestAnimationFrame(animate);
-	update_camera();
-	renderer.render(stage);
-}
-
-
 
 /*
 {var Menu = new PIXI.Sprite(sheet.textures["wall1.png"]);
@@ -295,12 +308,12 @@ function Cell(x, y, type)
 	else if (type == "3")
 	{
 		this.sprite = new PIXI.Sprite(sheet.textures["TopLeftHouse.png"]);
-		this.walkable = true;
+		this.walkable = false;
 	}
 	else if (type == "4")
 	{
 		this.sprite = new PIXI.Sprite(sheet.textures["TopRightHouse.png"]);
-		this.walkable = true;
+		this.walkable = false;
 	}
 	else if (type == "5")
 	{
@@ -325,6 +338,14 @@ function Cell(x, y, type)
 	}
 }
 
+function animate()
+{
+	requestAnimationFrame(animate);
+	update_camera();
+	renderer.render(stage);
+}
+
+
 function randInt(min, max)
 {
 	return Math.floor(Math.random() * max) + min;
@@ -332,8 +353,10 @@ function randInt(min, max)
 
 function update_camera()
 {
-	stage.x = -player.x*GAME_SCALE + GAME_WIDTH/2 - player.width/2*GAME_SCALE;
-	stage.y = -player.y*GAME_SCALE + GAME_HEIGHT/2 + player.height/2*GAME_SCALE;
-	stage.x = -Math.max(0, Math.min(100*GAME_SCALE - GAME_WIDTH, -stage.x));
-	stage.y = -Math.max(0, Math.min(100*GAME_SCALE - GAME_HEIGHT, -stage.y));
+  stage.x = -player.x*GAME_SCALE + GAME_WIDTH/2 - player.width/2*GAME_SCALE;
+  stage.y = -player.y*GAME_SCALE + GAME_HEIGHT/2 - player.height/2*GAME_SCALE;
+  stage.x = -Math.max(0, Math.min(4000*GAME_SCALE - GAME_WIDTH, -stage.x));
+  stage.y = -Math.max(0, Math.min(4000*GAME_SCALE - GAME_HEIGHT, -stage.y));
 }
+
+document.addEventListener('keydown', keydownEventHandler);
