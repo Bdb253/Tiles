@@ -9,6 +9,7 @@ stage.sortableChildren = true;
 // Scene objects get loaded in the ready function
 var player;
 var world;
+var sheet;
 
 // Character movement constants:
 var MOVE_LEFT = 1;
@@ -17,12 +18,13 @@ var MOVE_UP = 3;
 var MOVE_DOWN = 4;
 var MOVE_NONE = 0;
 
+var GAME_SCALE = 4;
+var GAME_WIDTH = 400;
+var GAME_HEIGHT = 400;
 
 var cell_width = 40;
 var cols = 100
 var rows = 100
-var width = cols+1;
-var height = rows+1;	
 
 var grid = [];
 var map = [];
@@ -33,6 +35,7 @@ var start = new Point(8,8);
 var finish;
 var playerPos = start;
 
+PIXI.Loader.shared.add("spriteSheet.json").load(setup);
 
 // The move function starts or continues movement
 function move() 
@@ -86,33 +89,36 @@ window.addEventListener("keydown", function (e) {
 
 function setup()
 {
+	sheet = PIXI.Loader.shared.resources["spriteSheet.json"].spritesheet;
 
 	$.getJSON("tilemap.json", function(jsonFile) {
-		console.log(jsonFile); // this will show the info it in firebug console
+		//console.log(jsonFile);
 		for( var x=0; x < rows; x++)
 		{
 			map[x] = [];
 			for(var y = 0; y< cols; y++)
 			{
-				map[x][y] = jsonFile.layers[0].data[(x*y)+y];
-				console.log(jsonFile.layers[0].data[(x*y)+y]); 
+				console.log(jsonFile.layers[0].data[(x*y)+y]);
+				var cell = new Cell(x, y, jsonFile.layers[0].data[(x*y)+y]);
+				cell.show();
+				map[x][y]=cell;
 			}
 		}
 	});
 	
-	playerTex = new PIXI.Texture.from("char.png");
-	player = new PIXI.Sprite(playerTex);
+	
+	player = new PIXI.Sprite(sheet.textures["char.png"]);
 
-	player.position.x = start.x * cell_width+20;
-	player.position.y = start.y * cell_width+20;
+	player.position.x = start.x * cell_width;
+	player.position.y = start.y * cell_width;
 	player.anchor.x = .5;
 	player.anchor.y = .5;
 	player.zIndex = 15;
 	stage.addChild(player);
 
+	animate();
 }	
 
-setup();
 /*
 
 //gameOver text
@@ -155,11 +161,11 @@ restartText.click = function(e)
 function animate()
 {
 	requestAnimationFrame(animate);
+	update_camera();
 	renderer.render(stage);
-
 }
 
-animate();
+
 
 /*
 {var Menu = new PIXI.Sprite(sheet.textures["wall1.png"]);
@@ -269,7 +275,65 @@ function Point(x, y)
 	this.y = y;
 }
 
+//Cell constructor
+function Cell(x, y, type)
+{
+	this.row = x;
+	this.col = y;
+	this.type = type;
+
+	if(type == "1")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["wall1.png"]);
+		this.walkable = false;
+	}
+	else if (type == "2")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["dirt1.png"]);
+		this.walkable = true;
+	}
+	else if (type == "3")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["TopLeftHouse.png"]);
+		this.walkable = true;
+	}
+	else if (type == "4")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["TopRightHouse.png"]);
+		this.walkable = true;
+	}
+	else if (type == "5")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["BottomLeftHouse.png"]);
+		this.walkable = true;
+	}
+	else if (type == "6")
+	{
+		this.sprite = new PIXI.Sprite(sheet.textures["BottomRightHouse.png"]);
+		this.walkable = true;
+	}
+
+	this.show = function()
+	{
+		var x = this.col*cell_width;
+		var y = this.row*cell_width;
+
+		this.sprite.x = x;
+		this.sprite.y = y;
+		this.sprite.zIndex = 5;
+		stage.addChild(this.sprite);
+	}
+}
+
 function randInt(min, max)
 {
 	return Math.floor(Math.random() * max) + min;
+}
+
+function update_camera()
+{
+	stage.x = -player.x*GAME_SCALE + GAME_WIDTH/2 - player.width/2*GAME_SCALE;
+	stage.y = -player.y*GAME_SCALE + GAME_HEIGHT/2 + player.height/2*GAME_SCALE;
+	stage.x = -Math.max(0, Math.min(100*GAME_SCALE - GAME_WIDTH, -stage.x));
+	stage.y = -Math.max(0, Math.min(100*GAME_SCALE - GAME_HEIGHT, -stage.y));
 }
