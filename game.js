@@ -25,89 +25,146 @@ var rows = 100
 var map = [];
 
 
-var start = new Point(6,6);
+var start = new Point(6, 6);
 var playerPos = start;
+
 
 PIXI.Loader.shared.add("spriteSheet.json").load(setup);
 
+
+// Character movement constants:
+var MOVE_LEFT = 1;
+var MOVE_RIGHT = 2;
+var MOVE_UP = 3;
+var MOVE_DOWN = 4;
+var MOVE_NONE = 0;
+
+
 // The move function starts or continues movement
-function keydownEventHandler(e)
-{	
-	//w key
-	if(e.keyCode == 87)
+function move()
+{
+	if (player.direction == MOVE_NONE)
 	{
-		if(player.angle != 0)
-		{
-			player.angle = 0;
-		}
-		if(map[playerPos.x][playerPos.y-1].walkable)
-		{
-			var newy = player.position.y - 40;
-			createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
-			playerPos.y-=1;
-		}
-		else
-		{
-			PIXI.sound.play('wrongWay');
-		}
-	}
-	//s key
-	if(e.keyCode == 83)
+    	player.moving = false;
+		//console.log("y: " + player.y);
+		//console.log("x: " + player.x);
+    	return;
+  	}
+  	player.moving = true;
+  	//console.log("move");
+  
+	if (player.direction == MOVE_LEFT)
 	{
-		if(player.angle != 180)
-		{
-			player.angle = 180;
-		}
-		if(map[playerPos.x][playerPos.y+1].walkable)
-		{
-			var newy = player.position.y + 40;
-			createjs.Tween.get(player.position).to({x: player.position.x, y: newy}, 250);
-			playerPos.y+=1;
-		}
-		else
-		{
-			PIXI.sound.play('wrongWay');
-		}
-	}
-	//a key
-	if(e.keyCode == 65)
-	{
-		if(player.angle != -90)
+    	if(player.angle != -90)
 		{
 			player.angle = -90;
 		}
-		if(map[playerPos.x-1][playerPos.y].walkable)
+		if(map[playerPos.x][playerPos.y-1].walkable)
 		{
+			player.moving = true;
+			playerPos.y -=1;
 			var newX = player.position.x - 40;
-			createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
-			playerPos.x -=1;
+			createjs.Tween.get(player).to({x: newX, y: player.position.y}, 250).call(move);
 		}
 		else
 		{
-			PIXI.sound.play('wrongWay');
+			//PIXI.sound.play('wrongWay').call(move);
+			player.direction = MOVE_NONE;
+			move();
 		}
-	}
-	//d key
-	if(e.keyCode == 68)
+ 	}
+	if (player.direction == MOVE_RIGHT)
 	{
-		if(player.angle != 90)
+    	if(player.angle != 90)
 		{
 			player.angle = 90;
 		}
-		if(map[playerPos.x+1][playerPos.y].walkable)
+		if(map[playerPos.x][playerPos.y+1].walkable)
 		{
+			player.moving = true;
+			playerPos.y+=1;
 			var newX = player.position.x + 40;
-			createjs.Tween.get(player.position).to({x: newX, y: player.position.y}, 250);
-			playerPos.x+=1;
+			createjs.Tween.get(player).to({x: newX, y: player.position.y}, 250).call(move);
+	
 		}
 		else
 		{
-			PIXI.sound.play('wrongWay');
+			//PIXI.sound.play('wrongWay').call(move);
+			player.direction = MOVE_NONE;
+			move();
 		}
 	}
-
-
+  	if (player.direction == MOVE_UP)
+	{
+	  if(player.angle != 0)
+		{
+			player.angle = 0;
+		}
+		if(map[playerPos.x-1][playerPos.y].walkable)
+		{
+			player.moving = true;
+			playerPos.x-=1;
+			var newy = player.position.y - 40;
+			createjs.Tween.get(player).to({y: newy}, 250).call(move);
+		}
+		else
+		{
+			//PIXI.sound.play('wrongWay').call(move);
+			player.direction = MOVE_NONE;
+			move();
+		}
+	}
+  	if (player.direction == MOVE_DOWN)
+	{
+	  if(player.angle != 180)
+		{
+			player.angle = 180;
+		}
+		if(map[playerPos.x+1][playerPos.y].walkable)
+		{
+			player.moving = true;
+			playerPos.x+=1;
+			var newy = player.position.y + 40;
+			createjs.Tween.get(player).to({x: player.position.x, y: newy}, 250).call(move);	
+		}
+		else
+		{
+			//PIXI.sound.play('wrongWay').call(move);
+			player.direction = MOVE_NONE;
+			move();
+		}
+	}
 }
+
+window.addEventListener("keydown", function (e) {
+  e.preventDefault();
+  if (!player) return;
+  if (player.moving) return;
+  if (e.repeat == true) return;
+  
+  player.direction = MOVE_NONE;
+
+  if (e.keyCode == 87)
+    player.direction = MOVE_UP;
+  else if (e.keyCode == 83)
+    player.direction = MOVE_DOWN;
+  else if (e.keyCode == 65)
+    player.direction = MOVE_LEFT;
+  else if (e.keyCode == 68)
+    player.direction = MOVE_RIGHT;
+
+  //console.log(e.keyCode);
+  move();
+});
+
+// Keyup events end movement
+window.addEventListener("keyup", function onKeyUp(e) {
+  e.preventDefault();
+  if (!player) return;
+  player.direction = MOVE_NONE;
+});
+
+PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
 
 function setup()
 {
@@ -131,11 +188,12 @@ function setup()
 	
 	player = new PIXI.Sprite(sheet.textures["char.png"]);
 
-	player.position.x = start.x * cell_width;
-	player.position.y = start.y * cell_width;
-	//player.anchor.x = .5;
-	//player.anchor.y = .5;
+	player.position.x = start.x * cell_width+20;
+	player.position.y = start.y * cell_width+20;
+	player.anchor.x = .5;
+	player.anchor.y = .5;
 	player.zIndex = 15;
+	player.moving = false;
 	stage.addChild(player);
 
 	animate();
@@ -358,5 +416,3 @@ function update_camera()
   stage.x = -Math.max(0, Math.min(4000*GAME_SCALE - GAME_WIDTH, -stage.x));
   stage.y = -Math.max(0, Math.min(4000*GAME_SCALE - GAME_HEIGHT, -stage.y));
 }
-
-document.addEventListener('keydown', keydownEventHandler);
