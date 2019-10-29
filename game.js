@@ -5,6 +5,7 @@ var GAME_SCALE = 1;
 var GAME_WIDTH = 400;
 var GAME_HEIGHT = 400;
 
+PIXI.sound.add('music', 'Game3.wav');
 var renderer = PIXI.autoDetectRenderer({width: GAME_WIDTH, height: GAME_HEIGHT, backgroundColor: 0x3344ee});
 gameport.appendChild(renderer.view);
 var stage = new PIXI.Container();
@@ -196,7 +197,9 @@ function setup()
 	player.moving = false;
 	stage.addChild(player);
 
+	playMusic();
 	animate();
+	 
 }	
 
 /*
@@ -396,8 +399,14 @@ function Cell(x, y, type)
 	}
 }
 
+function playMusic()
+{
+	PIXI.sound.play('music', {loop: true});
+}
+
 function animate()
 {
+	
 	requestAnimationFrame(animate);
 	update_camera();
 	renderer.render(stage);
